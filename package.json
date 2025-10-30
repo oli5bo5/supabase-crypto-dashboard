@@ -4,7 +4,7 @@
   "description": "Crypto dashboard with Supabase",
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npx opennext@latest",
+    "build": "next build && npx open-next@latest",
     "start": "next start"
   },
   "dependencies": {
@@ -13,6 +13,6 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "opennext": "latest"
+    "open-next": "latest"
   }
 }
