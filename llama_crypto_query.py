@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """
 Llama Crypto Query Script
-
 Dieses Skript ruft aktuelle Kryptokurse aus Supabase ab und übergibt sie
 als Kontext an einen lokalen Llama-LLM-Server, um Benutzerfragen zu beantworten.
 """
-
 import os
-import sys
+import argparse
 import requests
 from supabase import create_client, Client
 
@@ -64,13 +62,14 @@ def format_crypto_context(data: list) -> str:
     return context
 
 
-def query_llama(prompt: str, context: str) -> str:
+def query_llama(prompt: str, context: str, llama_url: str) -> str:
     """
     Sendet eine Anfrage mit Kontext an den lokalen Llama-Server.
     
     Args:
         prompt: Benutzerfrage
         context: Zusätzlicher Kontext (Krypto-Daten)
+        llama_url: URL des Llama-Servers
         
     Returns:
         Antwort des LLM
@@ -84,7 +83,7 @@ def query_llama(prompt: str, context: str) -> str:
     }
     
     try:
-        response = requests.post(LLAMA_API_URL, json=payload, timeout=60)
+        response = requests.post(llama_url, json=payload, timeout=60)
         response.raise_for_status()
         result = response.json()
         return result.get('response', 'Keine Antwort erhalten.')
@@ -96,32 +95,53 @@ def main():
     """
     Hauptfunktion: Ruft Krypto-Daten ab und beantwortet Benutzerfrage.
     """
-    if len(sys.argv) < 2:
-        print("Verwendung: python llama_crypto_query.py 'Ihre Frage hier'")
-        print("Beispiel: python llama_crypto_query.py 'Welche Kryptowährung hat den höchsten Preis?'")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='Kryptokurse von Supabase abrufen und via Llama LLM abfragen',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Beispiel:
+  python llama_crypto_query.py --question "Welche Kryptowährung hat den höchsten Preis?"
+  python llama_crypto_query.py -q "Was ist der Bitcoin-Preis?" --llama-url http://localhost:11434/api/generate
+        """
+    )
     
-    user_question = ' '.join(sys.argv[1:])
+    parser.add_argument(
+        '-q', '--question',
+        type=str,
+        required=True,
+        help='Die Frage an den Llama LLM über Kryptokurse'
+    )
+    
+    parser.add_argument(
+        '--llama-url',
+        type=str,
+        default=LLAMA_API_URL,
+        help=f'URL des Llama-API-Servers (Standard: {LLAMA_API_URL})'
+    )
+    
+    args = parser.parse_args()
     
     print("Rufe Krypto-Daten von Supabase ab...")
     crypto_data = get_crypto_data()
     
     if not crypto_data:
         print("Keine Daten verfügbar. Beende.")
-        sys.exit(1)
+        return 1
     
     print(f"Gefunden: {len(crypto_data)} Krypto-Datensätze")
     
     context = format_crypto_context(crypto_data)
     
-    print(f"\nSende Anfrage an Llama-Server...")
-    print(f"Frage: {user_question}\n")
+    print(f"\nSende Anfrage an Llama-Server ({args.llama_url})...")
+    print(f"Frage: {args.question}\n")
     
-    answer = query_llama(user_question, context)
+    answer = query_llama(args.question, context, args.llama_url)
     
     print("Antwort:")
     print(answer)
+    
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    sys.exit(main())
