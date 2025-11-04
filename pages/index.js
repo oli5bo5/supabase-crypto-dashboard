@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import useSWR from 'swr'
-import '../styles/globals.css'
 
 const fetcher = async (url) => {
   const res = await fetch(url)
